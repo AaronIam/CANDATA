@@ -1,0 +1,44 @@
+#include "driver/twai.h"
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+
+  // TWAI (CAN) general config
+  twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(GPIO_NUM_5, GPIO_NUM_4, TWAI_MODE_NORMAL); 
+  // TX = GPIO21, RX = GPIO22 → change to your wiring
+
+  // Timing (500 kbps)
+  twai_timing_config_t t_config = TWAI_TIMING_CONFIG_500KBITS();
+
+  // Filter config (accept all)
+  twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
+
+  if (twai_driver_install(&g_config, &t_config, &f_config) == ESP_OK) {
+    Serial.println("TWAI driver installed");
+  } else {
+    Serial.println("Failed to install TWAI driver");
+    return;
+  }
+
+  if (twai_start() == ESP_OK) {
+    Serial.println("TWAI receiver started");
+  } else {
+    Serial.println("Failed to start TWAI driver");
+    return;
+  }
+}
+
+void loop() {
+  twai_message_t message;
+  if (twai_receive(&message, pdMS_TO_TICKS(1000)) == ESP_OK) {
+    Serial.print("Received ID: 0x");
+    Serial.print(message.identifier, HEX);
+    Serial.print(" Data: ");
+    for (int i = 0; i < message.data_length_code; i++) {
+      Serial.print(message.data[i], HEX);
+      Serial.print(" ");
+    }
+    Serial.println();
+  }
+}
